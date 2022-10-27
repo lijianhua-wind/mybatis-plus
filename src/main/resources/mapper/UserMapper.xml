@@ -6,8 +6,8 @@
 
     <!--Map<String,Object> selectMapById(Serializable id);-->
     <select id="selectMapById" resultType="java.util.Map">
-        select id, name, age, email
+        select uid, name, age, email
         from t_user
-        where id = #{id}
+        where uid = #{id}
     </select>
 </mapper>
