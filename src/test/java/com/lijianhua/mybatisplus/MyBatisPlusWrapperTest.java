@@ -3,6 +3,7 @@ package com.lijianhua.mybatisplus;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
@@ -241,9 +242,19 @@ public class MyBatisPlusWrapperTest {
     }
 
     //8. 使用lambdaWrapper
+    //重点：为什么传入User::getName就知道对应哪个字段，底层会得到 getName 这个方法名，然后转换成 name 结果就跟没使用lambda表达式一样了
+    /*
+        protected ColumnCache getColumnCache(SFunction<T, ?> column) {
+            LambdaMeta meta = LambdaUtils.extract(column);
+            String fieldName = PropertyNamer.methodToProperty(meta.getImplMethodName());  //得到属性名name
+            Class<?> instantiatedClass = meta.getInstantiatedClass();
+            tryInitCache(instantiatedClass);
+            return getColumnCache(fieldName, instantiatedClass); //得到对应的column缓存
+        }
+     */
     @Test
     void test10() {
-        String username = "a";
+        String username = "小";
         Integer ageBegin = 10;
         Integer ageEnd = 30;
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
@@ -254,15 +265,29 @@ public class MyBatisPlusWrapperTest {
         users.forEach(System.out::println);
         /*
         ==>  Preparing: SELECT uid AS id,user_name AS name,age,email,is_deleted
-                        FROM t_user WHERE is_deleted=0 AND (age >= ? AND age <= ?)
-        ==> Parameters: 10(Integer), 30(Integer)
-        <==    Columns: id, name, age, email, is_deleted
-        <==        Row: 1, Jone, 18, test1@baomidou.com, 0
-        <==        Row: 2, 小红, 20, test@qq.com, 0
-        <==        Row: 3, Tom, 28, test3@baomidou.com, 0
-        <==        Row: 4, 小黑, 21, abc@qq.com, 0
-        <==        Row: 5, Billie, 24, test5@baomidou.com, 0
-        <==      Total: 5
+                        FROM t_user
+                        WHERE is_deleted=0 AND (user_name LIKE ? AND age >= ? AND age <= ?)
+        ==> Parameters: %a%(String), 10(Integer), 30(Integer)
+        <==      Total: 0
          */
+    }
+
+    //9. 使用updateWrapper实现修改功能
+    @Test
+    void test0822() {
+        //将用户名中包含a并且（年龄大于20或邮箱为null）的用户信息修改。
+        /*
+        ==>  Preparing: UPDATE t_user SET user_name=?,email=?
+                        WHERE is_deleted=0
+                        AND (user_name LIKE ? AND (age > ? OR email IS NULL))
+        ==> Parameters: 小黑(String), abc@gmail.com(String), %a%(String), 20(Integer)
+        <==    Updates: 0
+         */
+        LambdaUpdateWrapper<User> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.like(User::getName, "a")
+                .and(uw -> uw.gt(User::getAge, 20).or().isNull(User::getEmail));
+        updateWrapper.set(User::getName, "小黑").set(User::getEmail, "abc@gmail.com");
+        int update = userMapper.update(null, updateWrapper);
+        System.out.println("result：" + update);
     }
 }
