@@ -1,6 +1,7 @@
 package com.lijianhua.mybatisplus.domain;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.lijianhua.mybatisplus.enums.SexEnum;
 import lombok.Data;
 
 @Data
@@ -29,6 +30,8 @@ public class User {
     private Integer age;
 
     private String email;
+
+    private SexEnum sex;
 
     //指定该字段为逻辑删除字段  0：未删除   1：已删除
     @TableLogic
